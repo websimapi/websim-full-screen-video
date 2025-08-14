@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Screen Video</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #bg-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            background-size: cover;
+            object-fit: cover;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #mute-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 3;
+            transition: background 0.3s ease;
+            font-size: 20px;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mute-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .muted {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="loader"></div>
+    </div>
+
+    <div id="video-container">
+        <video id="bg-video" muted playsinline>
+            <source src="video.mp4" type="video/mp4">
+            <source src="video.webm" type="video/webm">
+            <source src="video.ogv" type="video/ogg">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <button id="mute-button" title="Toggle Sound">
+        🔇
+    </button>
+
+    <script>
+        const video = document.getElementById('bg-video');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const muteButton = document.getElementById('mute-button');
+        
+        let isMuted = true;
+
+        // Auto-play and loop video
+        video.addEventListener('loadedmetadata', () => {
+            video.play().then(() => {
+                // Hide loading overlay when video starts playing
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 500);
+            }).catch(error => {
+                console.log('Autoplay was prevented:', error);
+                loadingOverlay.style.display = 'none';
+                // Show play button if autoplay fails
+                showPlayButton();
+            });
+        });
+
+        video.addEventListener('ended', () => {
+            video.currentTime = 0;
+            video.play();
+        });
+
+        // Handle mute/unmute
+        muteButton.addEventListener('click', () => {
+            isMuted = !isMuted;
+            video.muted = isMuted;
+            
+            if (isMuted) {
+                muteButton.innerHTML = '🔇';
+                muteButton.classList.add('muted');
+            } else {
+                muteButton.innerHTML = '🔊';
+                muteButton.classList.remove('muted');
+            }
+        });
+
+        function showPlayButton() {
+            const playButton = document.createElement('button');
+            playButton.innerHTML = '▶';
+            playButton.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 255, 255, 0.9);
+                border: none;
+                border-radius: 50%;
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+                cursor: pointer;
+                z-index: 4;
+            `;
+            
+            playButton.addEventListener('click', () => {
+                video.play();
+                playButton.remove();
+            });
+            
+            document.body.appendChild(playButton);
+        }
+
+        // Handle visibility change to prevent audio issues
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                video.pause();
+            } else {
+                video.play();
+            }
+        });
+
+        // Handle window resize to maintain aspect ratio
+        window.addEventListener('resize', () => {
+            const windowRatio = window.innerWidth / window.innerHeight;
+            const videoRatio = video.videoWidth / video.videoHeight;
+            
+            if (windowRatio > videoRatio) {
+                video.style.width = '100%';
+                video.style.height = 'auto';
+            } else {
+                video.style.width = 'auto';
+                video.style.height = '100%';
+            }
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
